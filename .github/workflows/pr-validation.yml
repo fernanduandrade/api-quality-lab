@@ -39,15 +39,19 @@ jobs:
               run: dotnet build EventManagement/EventManagement.slnx --no-restore --configuration Release
 
             - name: Test + Coverage
+              id: tests
+              continue-on-error: true
               run: |
                   dotnet test EventManagement/EventManagement.slnx --no-build --configuration Release \
                     --collect:"XPlat Code Coverage" \
                     --results-directory ./coverage
 
             - name: Install ReportGenerator
+              if: always()
               run: dotnet tool install -g dotnet-reportgenerator-globaltool
 
             - name: Generate coverage report
+              if: always()
               run: |
                   reportgenerator \
                     -reports:"./coverage/**/coverage.cobertura.xml" \
@@ -55,6 +59,7 @@ jobs:
                     -reporttypes:"MarkdownSummaryGithub"
 
             - name: Coverage gate (min 80%)
+              if: always()
               run: |
                   COVERAGE=$(grep -oP 'line-rate="\K[^"]+' ./coverage/**/coverage.cobertura.xml | head -1)
                   PERCENT=$(echo "$COVERAGE * 100" | bc)
@@ -65,6 +70,11 @@ jobs:
                   fi
 
             - name: Post coverage comment on PR
+              if: always()
               uses: marocchino/sticky-pull-request-comment@v2
               with:
                   path: ./coverage/report/SummaryGithub.md
+
+            - name: Fail if tests failed
+              if: steps.tests.outcome == 'failure'
+              run: exit 1
