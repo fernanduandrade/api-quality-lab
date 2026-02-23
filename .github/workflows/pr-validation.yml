@@ -40,7 +40,7 @@ jobs:
 
             - name: Test + Coverage
               run: |
-                  dotnet test --no-build --configuration Release \
+                  dotnet test EventManagement/EventManagement.slnx --no-build --configuration Release \
                     --collect:"XPlat Code Coverage" \
                     --results-directory ./coverage
 
