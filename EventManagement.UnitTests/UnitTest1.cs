@@ -44,6 +44,14 @@ public class UnitTest1
         Assert.True(dict.ContainsKey("a"));
     }
 
+    [Fact(DisplayName = "Dictionary should not contain missing key")]
+    [Trait("Category", "Collections")]
+    public void Dictionary_DoesNotContainKey()
+    {
+        var dict = new Dictionary<string, int> { ["a"] = 1 };
+        Assert.False(dict.ContainsKey("b"));
+    }
+
     [Fact(DisplayName = "True is not false")]
     [Trait("Category", "Logic")]
     public void True_IsNotFalse() => Assert.NotEqual(true, false);
