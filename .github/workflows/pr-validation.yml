@@ -1,0 +1,70 @@
+name: PULL REQUEST VALIDATION
+
+on:
+    pull_request:
+        branches: ["main"]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: 10.0.x
+                  dotnet-quality: "preview"
+            - name: Restore dependencies
+              run: dotnet restore EventManagement/EventManagement.slnx
+            - name: Build
+              run: dotnet build EventManagement/EventManagement.slnx --no-restore --configuration Release
+
+    pr-validation:
+        runs-on: ubuntu-latest
+        needs: build
+
+        steps:
+            - uses: actions/checkout@v4
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: 10.0.x
+                  dotnet-quality: "preview"
+
+            - name: Restore dependencies
+              run: dotnet restore EventManagement/EventManagement.slnx
+
+            - name: Build
+              run: dotnet build EventManagement/EventManagement.slnx --no-restore --configuration Release
+
+            - name: Test + Coverage
+              run: |
+                  dotnet test --no-build --configuration Release \
+                    --collect:"XPlat Code Coverage" \
+                    --results-directory ./coverage
+
+            - name: Install ReportGenerator
+              run: dotnet tool install -g dotnet-reportgenerator-globaltool
+
+            - name: Generate coverage report
+              run: |
+                  reportgenerator \
+                    -reports:"./coverage/**/coverage.cobertura.xml" \
+                    -targetdir:"./coverage/report" \
+                    -reporttypes:"MarkdownSummaryGithub"
+
+            - name: Coverage gate (min 80%)
+              run: |
+                  COVERAGE=$(grep -oP 'line-rate="\K[^"]+' ./coverage/**/coverage.cobertura.xml | head -1)
+                  PERCENT=$(echo "$COVERAGE * 100" | bc)
+                  echo "Coverage: $PERCENT%"
+                  if (( $(echo "$PERCENT < 80" | bc -l) )); then
+                    echo "Coverage below 80%!"
+                    exit 1
+                  fi
+
+            - name: Post coverage comment on PR
+              uses: marocchino/sticky-pull-request-comment@v2
+              with:
+                  path: ./coverage/report/SummaryGithub.md
