@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="EventManagement/src/EventManagement.API/EventManagement.Host.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="EventManagement/tests/EventManagement.UnitTests/EventManagement.UnitTests.csproj" />
+  </Folder>
+</Solution>

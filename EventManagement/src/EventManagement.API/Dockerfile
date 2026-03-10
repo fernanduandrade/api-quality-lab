@@ -12,19 +12,19 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["EventManagement.csproj", "."]
-RUN dotnet restore "./EventManagement.csproj"
+COPY ["EventManagement.Host.csproj", "."]
+RUN dotnet restore "./EventManagement.Host.csproj"
 COPY . .
 WORKDIR "/src/."
-RUN dotnet build "./EventManagement.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "./EventManagement.Host.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Esta fase é usada para publicar o projeto de serviço a ser copiado para a fase final
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./EventManagement.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./EventManagement.Host.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # Esta fase é usada na produção ou quando executada no VS no modo normal (padrão quando não está usando a configuração de Depuração)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "EventManagement.dll"]
+ENTRYPOINT ["dotnet", "EventManagement.Host.dll"]
