@@ -13,16 +13,33 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      AWS_ROLE_TO_ASSUME: ${{ startsWith(secrets.AWS_ROLE, 'arn:aws:iam::') && secrets.AWS_ROLE || format('arn:aws:iam::{0}:role/{1}', secrets.AWS_ACCOUNT_ID, secrets.AWS_ROLE) }}
 
     steps:
 
       - uses: actions/checkout@v4
 
+      - name: Validate AWS role ARN
+        run: |
+          if [[ -z "$AWS_ROLE_TO_ASSUME" ]]; then
+            echo "AWS role is empty. Configure AWS_ROLE (role ARN or role name) secret."
+            exit 1
+          fi
+
+          if [[ ! "$AWS_ROLE_TO_ASSUME" =~ ^arn:aws:iam::[0-9]{12}:role/.+ ]]; then
+            echo "Invalid role ARN: $AWS_ROLE_TO_ASSUME"
+            echo "Expected format: arn:aws:iam::<12-digit-account-id>:role/<role-name>"
+            echo "If AWS_ROLE is only the role name, also set AWS_ACCOUNT_ID secret."
+            exit 1
+          fi
+
       - name: Login AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE }}
-          aws-region: us-east-1
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login ECR
         uses: aws-actions/amazon-ecr-login@v2
