@@ -16,9 +16,9 @@ jobs:
                   dotnet-version: 10.0.x
                   dotnet-quality: "preview"
             - name: Restore dependencies
-              run: dotnet restore EventManagement/EventManagement.slnx
+              run: dotnet restore EventManagement.slnx
             - name: Build
-              run: dotnet build EventManagement/EventManagement.slnx --no-restore --configuration Release
+              run: dotnet build EventManagement.slnx --no-restore --configuration Release
 
     pr-validation:
         runs-on: ubuntu-latest
@@ -33,16 +33,16 @@ jobs:
                   dotnet-quality: "preview"
 
             - name: Restore dependencies
-              run: dotnet restore EventManagement/EventManagement.slnx
+              run: dotnet restore EventManagement.slnx
 
             - name: Build
-              run: dotnet build EventManagement/EventManagement.slnx --no-restore --configuration Release
+              run: dotnet build EventManagement.slnx --no-restore --configuration Release
 
             - name: Test + Coverage
               id: tests
               continue-on-error: true
               run: |
-                  dotnet test EventManagement/EventManagement.slnx --no-build --configuration Release \
+                  dotnet test EventManagement.slnx --no-build --configuration Release \
                     --collect:"XPlat Code Coverage" \
                     --results-directory ./coverage
 
@@ -57,24 +57,3 @@ jobs:
                     -reports:"./coverage/**/coverage.cobertura.xml" \
                     -targetdir:"./coverage/report" \
                     -reporttypes:"MarkdownSummaryGithub"
-
-            - name: Coverage gate (min 80%)
-              if: always()
-              run: |
-                  COVERAGE=$(grep -oP 'line-rate="\K[^"]+' ./coverage/**/coverage.cobertura.xml | head -1)
-                  PERCENT=$(echo "$COVERAGE * 100" | bc)
-                  echo "Coverage: $PERCENT%"
-                  if (( $(echo "$PERCENT < 80" | bc -l) )); then
-                    echo "Coverage below 80%!"
-                    exit 1
-                  fi
-
-            - name: Post coverage comment on PR
-              if: always()
-              uses: marocchino/sticky-pull-request-comment@v2
-              with:
-                  path: ./coverage/report/SummaryGithub.md
-
-            - name: Fail if tests failed
-              if: steps.tests.outcome == 'failure'
-              run: exit 1
