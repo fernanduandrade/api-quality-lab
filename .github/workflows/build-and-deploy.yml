@@ -50,11 +50,11 @@ jobs:
 
       - name: Tag image
         run: |
-          docker tag event-api:latest $ECR_REPOSITORY:latest
+          docker tag event-api:latest ${{ secrets.ECR_REPOSITORY }}:latest
 
       - name: Push image
         run: |
-          docker push $ECR_REPOSITORY:latest
+          docker push ${{ secrets.ECR_REPOSITORY }}:latest
 
       - name: Deploy ECS
         run: |
