@@ -1,23 +1,46 @@
-name: BUILD AND DEPLOY
+name: Deploy API
 
 on:
   pull_request:
-    branches: [ "main" ]
-    types: [ closed ]
+    branches:
+      - main
+    types:
+      - closed
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+
+  deploy:
     if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 10.0.x
-        dotnet-quality: 'preview'
-    - name: Restore dependencies
-      run: dotnet restore EventManagement/EventManagement.slnx
-    - name: Build
-      run: dotnet build EventManagement/EventManagement.slnx --no-restore
+
+      - uses: actions/checkout@v4
+
+      - name: Login AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          aws-region: us-east-1
+
+      - name: Login ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build docker image
+        run: |
+          docker build -t event-api .
+
+      - name: Tag image
+        run: |
+          docker tag event-api:latest $ECR_REPOSITORY:latest
+
+      - name: Push image
+        run: |
+          docker push $ECR_REPOSITORY:latest
+
+      - name: Deploy ECS
+        run: |
+          aws ecs update-service \
+            --cluster event_management_cluster-ecs \
+            --service event_management_service \
+            --force-new-deployment
